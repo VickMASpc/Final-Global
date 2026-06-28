@@ -78,6 +78,11 @@ function commitStateChange({ mutate, renderApp, rootElement, onDataChange, focus
   onDataChange();
 }
 
+function commitInputChange({ mutate, onDataChange }) {
+  mutate();
+  onDataChange();
+}
+
 function confirmDeletion(message, showToast) {
   const confirmed = window.confirm(message);
 
@@ -332,34 +337,25 @@ export function bindEvents(rootElement, renderApp, uiActions, onDataChange) {
     }
 
     if (action === "edit-field") {
-      commitStateChange({
+      commitInputChange({
         mutate: () => updateRow(target.dataset.collection, target.dataset.rowId, target.dataset.key, target.value),
-        renderApp,
-        rootElement,
-        onDataChange,
-        focusMeta: captureFocus(target)
+        onDataChange
       });
       return;
     }
 
     if (action === "edit-card-field") {
-      commitStateChange({
+      commitInputChange({
         mutate: () => updateCreditCard(target.dataset.cardId, target.dataset.key, target.value),
-        renderApp,
-        rootElement,
-        onDataChange,
-        focusMeta: captureFocus(target)
+        onDataChange
       });
       return;
     }
 
     if (action === "edit-purchase-field") {
-      commitStateChange({
+      commitInputChange({
         mutate: () => updateCreditCardPurchase(target.dataset.cardId, target.dataset.purchaseId, target.dataset.key, target.value),
-        renderApp,
-        rootElement,
-        onDataChange,
-        focusMeta: captureFocus(target)
+        onDataChange
       });
     }
   });
