@@ -1,3 +1,5 @@
+export const APP_TITLE = "Global Access Budget";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCzemXQS40ea1PTJrIkLRTJCmJysUXF2_w",
   authDomain: "global-access-budget.firebaseapp.com",
