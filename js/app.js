@@ -21,15 +21,32 @@ const SAVE_LABEL_MAP = {
   saved: "Saved",
   error: "Save failed"
 };
+const DEFERRED_EDIT_ACTIONS = new Set(["edit-field", "edit-card-field", "edit-purchase-field"]);
 
 let autosaveTimeoutId = null;
 let saveFlashTimeoutId = null;
+let editableInputEventInProgress = false;
+let pendingEditableCommit = false;
 
 function getCurrentMonthValue() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
+}
+
+function isDeferredEditableTarget(target) {
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
+    return false;
+  }
+
+  return DEFERRED_EDIT_ACTIONS.has(target.dataset.action) && target.type !== "checkbox";
+}
+
+function markPendingEditableChange() {
+  pendingEditableCommit = true;
+  setSaveState("dirty");
+  updateSaveIndicator();
 }
 
 function updateSaveIndicator() {
@@ -78,6 +95,16 @@ function createRenderer(rootElement) {
   return () => renderApp(rootElement);
 }
 
+function createInteractionAwareRenderer() {
+  return (rootElement) => {
+    if (editableInputEventInProgress) {
+      return;
+    }
+
+    renderApp(rootElement);
+  };
+}
+
 async function persistBudgets(showToastMessage) {
   setSaveState("saving");
   updateSaveIndicator();
@@ -116,6 +143,38 @@ function scheduleAutosave(showToastMessage) {
   }, AUTOSAVE_DELAY_MS);
 }
 
+function bindEditableCommitGuards(rootElement) {
+  rootElement.addEventListener(
+    "input",
+    (event) => {
+      if (!isDeferredEditableTarget(event.target)) {
+        return;
+      }
+
+      editableInputEventInProgress = true;
+      markPendingEditableChange();
+
+      queueMicrotask(() => {
+        editableInputEventInProgress = false;
+      });
+    },
+    true
+  );
+
+  rootElement.addEventListener(
+    "change",
+    (event) => {
+      if (!pendingEditableCommit || !isDeferredEditableTarget(event.target)) {
+        return;
+      }
+
+      pendingEditableCommit = false;
+      scheduleAutosave(showToast);
+    },
+    true
+  );
+}
+
 async function startApp() {
   const rootElement = document.getElementById("app");
   initializeState(getCurrentMonthValue());
@@ -137,11 +196,19 @@ async function startApp() {
   currentMonthCreated = ensureCurrentMonth().created;
   syncImportMonth();
   renderCurrentView();
+  bindEditableCommitGuards(rootElement);
   bindEvents(
     rootElement,
-    (root) => renderApp(root),
+    createInteractionAwareRenderer(),
     { showToast, setLoading },
-    () => scheduleAutosave(showToast)
+    () => {
+      if (editableInputEventInProgress) {
+        markPendingEditableChange();
+        return;
+      }
+
+      scheduleAutosave(showToast);
+    }
   );
 
   if (currentMonthCreated && storageReady) {
