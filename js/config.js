@@ -1,12 +1,11 @@
-export const APP_TITLE = "Global Access Budget";
-export const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.firebasestorage.app",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID"
+const firebaseConfig = {
+  apiKey: "AIzaSyCzemXQS40ea1PTJrIkLRTJCmJysUXF2_w",
+  authDomain: "global-access-budget.firebaseapp.com",
+  projectId: "global-access-budget",
+  storageBucket: "global-access-budget.firebasestorage.app",
+  messagingSenderId: "996912333170",
+  appId: "1:996912333170:web:c199acfa4f5d111d65ddeb",
+  measurementId: "G-7Z9CBPPC9E"
 };
 export const SHARED_DOCUMENT_ID = "Budget_Global_Shared_Master";
 
