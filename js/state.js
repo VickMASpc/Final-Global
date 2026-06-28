@@ -118,6 +118,64 @@ function normalizeMoneyString(value) {
   return String(Math.max(0, numericValue));
 }
 
+function normalizePositiveInteger(value) {
+  const numericValue = Math.trunc(Number(value));
+
+  if (!Number.isFinite(numericValue)) {
+    return 1;
+  }
+
+  return Math.max(1, numericValue);
+}
+
+function normalizeMoneyDraft(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const rawValue = String(value).trim();
+
+  if (rawValue === "") {
+    return "";
+  }
+
+  if (rawValue === "." || /^\d+\.?\d*$/.test(rawValue) || /^\.\d*$/.test(rawValue)) {
+    return rawValue;
+  }
+
+  const numericValue = Number(rawValue);
+
+  if (!Number.isFinite(numericValue)) {
+    return "";
+  }
+
+  return String(Math.max(0, numericValue));
+}
+
+function normalizePositiveIntegerDraft(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const rawValue = String(value).trim();
+
+  if (rawValue === "") {
+    return "";
+  }
+
+  if (/^\d+$/.test(rawValue)) {
+    return rawValue === "0" ? "1" : rawValue;
+  }
+
+  const numericValue = Math.trunc(Number(rawValue));
+
+  if (!Number.isFinite(numericValue)) {
+    return "";
+  }
+
+  return String(Math.max(1, numericValue));
+}
+
 function normalizePlannedIncomeRow(item) {
   return {
     id: item.id || createRow("plannedIncome").id,
@@ -159,13 +217,14 @@ function normalizeLoanRow(item) {
 }
 
 function normalizePurchaseRow(item) {
-  const installmentsTotal = Math.max(1, Number(item.installmentsTotal) || 1);
+  const installmentsTotal = normalizePositiveInteger(item.installmentsTotal);
+  const installmentsCurrent = Math.min(normalizePositiveInteger(item.installmentsCurrent), installmentsTotal);
 
   return {
     id: item.id || createCreditCardPurchase().id,
     description: normalizeText(item.description),
     totalAmount: normalizeMoneyString(item.totalAmount),
-    installmentsCurrent: Math.max(1, Number(item.installmentsCurrent) || 1),
+    installmentsCurrent,
     installmentsTotal,
     finished: Boolean(item.finished)
   };
@@ -206,20 +265,6 @@ function normalizeBudgets(nextBudgets) {
       .filter(([monthKey]) => isValidMonthKey(monthKey))
       .map(([monthKey, monthData]) => [monthKey, normalizeMonthData(monthData)])
   );
-}
-
-function normalizeNonNegativeInput(value) {
-  if (value === "") {
-    return "";
-  }
-
-  const numericValue = Number(value);
-
-  if (!Number.isFinite(numericValue)) {
-    return "";
-  }
-
-  return String(Math.max(0, numericValue));
 }
 
 function clearLoanIncreaseDraft(loanId) {
@@ -376,18 +421,12 @@ export function updateCreditCardPurchase(cardId, purchaseId, key, value) {
   }
 
   if (key === "totalAmount") {
-    purchase[key] = normalizeNonNegativeInput(value);
+    purchase[key] = normalizeMoneyDraft(value);
     return;
   }
 
   if (key === "installmentsCurrent" || key === "installmentsTotal") {
-    const normalizedValue = Math.max(1, Number(value) || 1);
-    purchase[key] = normalizedValue;
-
-    if (key === "installmentsTotal" && purchase.installmentsCurrent > normalizedValue) {
-      purchase.installmentsCurrent = normalizedValue;
-    }
-
+    purchase[key] = normalizePositiveIntegerDraft(value);
     return;
   }
 
@@ -414,7 +453,7 @@ export function getLoanIncreaseDraft(loanId) {
 }
 
 export function setLoanIncreaseDraft(loanId, value) {
-  uiState.loanIncreaseDrafts[loanId] = normalizeNonNegativeInput(value);
+  uiState.loanIncreaseDrafts[loanId] = normalizeMoneyDraft(value);
 }
 
 export function applyLoanIncrease(loanId) {
@@ -440,7 +479,7 @@ export function updateRow(collection, rowId, key, value) {
   }
 
   if (["amount", "amountLeft", "monthlyPayment"].includes(key)) {
-    row[key] = normalizeNonNegativeInput(value);
+    row[key] = normalizeMoneyDraft(value);
     return;
   }
 
