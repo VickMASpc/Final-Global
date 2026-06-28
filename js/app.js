@@ -8,11 +8,20 @@ import {
   initializeState,
   setBudgets,
   setImportMonth,
-  setSaveState
+  setSaveState,
+  uiState
 } from "./state.js";
 import { initStorage, loadBudgets, saveBudgets } from "./storage.js";
 
 const AUTOSAVE_DELAY_MS = 1000;
+const SAVE_LABEL_MAP = {
+  idle: "Ready",
+  dirty: "Changes pending",
+  saving: "Saving...",
+  saved: "Saved",
+  error: "Save failed"
+};
+
 let autosaveTimeoutId = null;
 let saveFlashTimeoutId = null;
 
@@ -21,6 +30,17 @@ function getCurrentMonthValue() {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
+}
+
+function updateSaveIndicator() {
+  const statusElement = document.querySelector(".toolbar-grid .save-indicator");
+
+  if (!statusElement) {
+    return;
+  }
+
+  statusElement.classList.toggle("is-dirty", uiState.saveState === "dirty" || uiState.saveState === "saving");
+  statusElement.textContent = SAVE_LABEL_MAP[uiState.saveState] || "Ready";
 }
 
 function toggleLoading(isVisible) {
@@ -58,14 +78,14 @@ function createRenderer(rootElement) {
   return () => renderApp(rootElement);
 }
 
-async function persistBudgets(renderCurrentView, showToastMessage) {
+async function persistBudgets(showToastMessage) {
   setSaveState("saving");
-  renderCurrentView();
+  updateSaveIndicator();
 
   try {
     await saveBudgets(getBudgetsSnapshot());
     setSaveState("saved");
-    renderCurrentView();
+    updateSaveIndicator();
 
     if (saveFlashTimeoutId) {
       clearTimeout(saveFlashTimeoutId);
@@ -73,26 +93,26 @@ async function persistBudgets(renderCurrentView, showToastMessage) {
 
     saveFlashTimeoutId = window.setTimeout(() => {
       setSaveState("idle");
-      renderCurrentView();
+      updateSaveIndicator();
     }, 1600);
   } catch (error) {
     console.error("Failed to save shared budgets.", error);
     setSaveState("error");
-    renderCurrentView();
+    updateSaveIndicator();
     showToastMessage("Save failed. Changes remain in the current browser session.");
   }
 }
 
-function scheduleAutosave(renderCurrentView, showToastMessage) {
+function scheduleAutosave(showToastMessage) {
   setSaveState("dirty");
-  renderCurrentView();
+  updateSaveIndicator();
 
   if (autosaveTimeoutId) {
     clearTimeout(autosaveTimeoutId);
   }
 
   autosaveTimeoutId = window.setTimeout(() => {
-    persistBudgets(renderCurrentView, showToastMessage);
+    persistBudgets(showToastMessage);
   }, AUTOSAVE_DELAY_MS);
 }
 
@@ -121,11 +141,11 @@ async function startApp() {
     rootElement,
     (root) => renderApp(root),
     { showToast, setLoading },
-    () => scheduleAutosave(renderCurrentView, showToast)
+    () => scheduleAutosave(showToast)
   );
 
   if (currentMonthCreated && storageReady) {
-    scheduleAutosave(renderCurrentView, showToast);
+    scheduleAutosave(showToast);
   }
 }
 
