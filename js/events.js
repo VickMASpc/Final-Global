@@ -10,6 +10,9 @@ import {
   getAvailableMonths,
   getCurrentMonth,
   getImportMonth,
+  setAllCreditCardPurchasesFinished,
+  setAllPlannedBillsPaid,
+  setAllPlannedIncomeReceived,
   setActivePlanSubtab,
   setActiveTab,
   setCardBillPaid,
@@ -137,6 +140,26 @@ export function bindEvents(rootElement, renderApp, uiActions, onDataChange) {
       return;
     }
 
+    if (action === "bulk-set-planned-income-received") {
+      commitStateChange({
+        mutate: () => setAllPlannedIncomeReceived(actionElement.dataset.checked === "true"),
+        renderApp,
+        rootElement,
+        onDataChange
+      });
+      return;
+    }
+
+    if (action === "bulk-set-planned-bills-paid") {
+      commitStateChange({
+        mutate: () => setAllPlannedBillsPaid(actionElement.dataset.checked === "true"),
+        renderApp,
+        rootElement,
+        onDataChange
+      });
+      return;
+    }
+
     if (action === "delete-row") {
       if (!confirmDeletion("Delete this row?", showToast)) {
         return;
@@ -180,6 +203,16 @@ export function bindEvents(rootElement, renderApp, uiActions, onDataChange) {
     if (action === "add-purchase") {
       commitStateChange({
         mutate: () => addCreditCardPurchase(actionElement.dataset.cardId),
+        renderApp,
+        rootElement,
+        onDataChange
+      });
+      return;
+    }
+
+    if (action === "bulk-set-purchases-finished") {
+      commitStateChange({
+        mutate: () => setAllCreditCardPurchasesFinished(actionElement.dataset.cardId, actionElement.dataset.checked === "true"),
         renderApp,
         rootElement,
         onDataChange

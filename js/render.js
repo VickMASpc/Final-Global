@@ -146,6 +146,32 @@ function renderStatusBadge(label, tone = "neutral") {
   return `<span class="status-badge status-${tone}">${label}</span>`;
 }
 
+function renderBulkActions(actions = []) {
+  if (!actions.length) {
+    return "";
+  }
+
+  return `
+    <div class="bulk-actions" aria-label="Bulk actions">
+      ${actions
+        .map(
+          (action) => `
+            <button
+              type="button"
+              class="btn btn-secondary btn-compact"
+              data-action="${action.action}"
+              ${action.cardId ? `data-card-id="${escapeHtml(action.cardId)}"` : ""}
+              data-checked="${action.checked ? "true" : "false"}"
+            >
+              ${action.label}
+            </button>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderEmptyStateRow(message, columnCount) {
   return `
     <tr>
@@ -157,6 +183,8 @@ function renderEmptyStateRow(message, columnCount) {
 }
 
 function renderPlannedIncomeTable(monthState) {
+  const hasRows = monthState.plannedIncome.length > 0;
+
   return `
     <section class="panel">
       <div class="panel-header">
@@ -222,6 +250,14 @@ function renderPlannedIncomeTable(monthState) {
         </table>
       </div>
       <div class="table-actions">
+        ${renderBulkActions(
+          hasRows
+            ? [
+                { action: "bulk-set-planned-income-received", checked: true, label: "Mark All Received" },
+                { action: "bulk-set-planned-income-received", checked: false, label: "Clear Received" }
+              ]
+            : []
+        )}
         <button type="button" class="btn btn-primary" data-action="add-row" data-collection="plannedIncome">Add Planned Income</button>
       </div>
     </section>
@@ -323,6 +359,7 @@ function renderPlannedBillRow(row) {
 
 function renderBillsTable(monthState) {
   const allPlannedBills = [...monthState.plannedBills, ...deriveCreditCardBills(monthState)];
+  const hasManualBills = monthState.plannedBills.length > 0;
 
   return `
     <div class="subtab-panel ${uiState.activePlanSubtab === "incoming-bills" ? "is-active" : ""}" data-subtab-panel="incoming-bills">
@@ -351,6 +388,14 @@ function renderBillsTable(monthState) {
           </table>
         </div>
         <div class="table-actions">
+          ${renderBulkActions(
+            hasManualBills
+              ? [
+                  { action: "bulk-set-planned-bills-paid", checked: true, label: "Mark All Paid" },
+                  { action: "bulk-set-planned-bills-paid", checked: false, label: "Clear Paid" }
+                ]
+              : []
+          )}
           <button type="button" class="btn btn-primary" data-action="add-row" data-collection="plannedBills">Add Bill</button>
         </div>
       </section>
@@ -501,6 +546,24 @@ function renderCreditCards(monthState) {
                           </table>
                         </div>
                         <div class="table-actions">
+                          ${renderBulkActions(
+                            card.purchases.length
+                              ? [
+                                  {
+                                    action: "bulk-set-purchases-finished",
+                                    cardId: card.id,
+                                    checked: true,
+                                    label: "Mark All Finished"
+                                  },
+                                  {
+                                    action: "bulk-set-purchases-finished",
+                                    cardId: card.id,
+                                    checked: false,
+                                    label: "Clear Finished"
+                                  }
+                                ]
+                              : []
+                          )}
                           <button type="button" class="btn btn-primary" data-action="add-purchase" data-card-id="${escapeHtml(card.id)}">Add Purchase</button>
                         </div>
                       </article>

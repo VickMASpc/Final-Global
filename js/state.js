@@ -301,6 +301,20 @@ export function addRow(collection) {
   return row;
 }
 
+export function setAllPlannedIncomeReceived(received) {
+  const monthState = getCurrentMonthData();
+  monthState.plannedIncome.forEach((row) => {
+    row.received = Boolean(received);
+  });
+}
+
+export function setAllPlannedBillsPaid(paid) {
+  const monthState = getCurrentMonthData();
+  monthState.plannedBills.forEach((row) => {
+    row.paid = Boolean(paid);
+  });
+}
+
 export function deleteRow(collection, rowId) {
   const monthState = getCurrentMonthData();
   monthState[collection] = monthState[collection].filter((item) => item.id !== rowId);
@@ -354,6 +368,19 @@ export function addCreditCardPurchase(cardId) {
   const purchase = createCreditCardPurchase();
   card.purchases.push(purchase);
   return purchase;
+}
+
+export function setAllCreditCardPurchasesFinished(cardId, finished) {
+  const monthState = getCurrentMonthData();
+  const card = monthState.creditCards.find((item) => item.id === cardId);
+
+  if (!card) {
+    return;
+  }
+
+  card.purchases.forEach((purchase) => {
+    purchase.finished = Boolean(finished);
+  });
 }
 
 export function updateCreditCardPurchase(cardId, purchaseId, key, value) {

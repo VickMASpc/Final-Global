@@ -205,6 +205,12 @@ button {
   background: rgba(255, 255, 255, 0.78);
 }
 
+.btn-compact {
+  min-height: 38px;
+  padding: 0.58rem 0.85rem;
+  font-size: 0.9rem;
+}
+
 .btn-danger {
   border-color: rgba(207, 66, 89, 0.14);
   background: rgba(207, 66, 89, 0.08);
@@ -384,8 +390,17 @@ button {
 
 .table-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   justify-content: flex-end;
   margin-top: var(--space-4);
+}
+
+.bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-right: auto;
 }
 
 .credit-card-stack {
@@ -632,5 +647,19 @@ button {
 
   .toast {
     min-width: 0;
+  }
+
+  .bulk-actions,
+  .table-actions {
+    width: 100%;
+  }
+
+  .table-actions {
+    justify-content: stretch;
+  }
+
+  .table-actions .btn,
+  .bulk-actions .btn {
+    flex: 1 1 180px;
   }
 }
