@@ -27,13 +27,40 @@
     Import Extrato
   </button>
   <script type="module">
-    import { addRow, updateRow, getBudgetsSnapshot } from "./js/state.js";
+    import { addRow, updateRow, getBudgetsSnapshot, setBudgets } from "./js/state.js";
     import { saveBudgets } from "./js/storage.js";
 
     document.getElementById('runImportBtn').addEventListener('click', async () => {
       try {
         const btn = document.getElementById('runImportBtn');
-        btn.textContent = "Loading...";
+        btn.textContent = "Cleaning up & Importing...";
+        
+        const now = Date.now();
+        const twoHours = 2 * 60 * 60 * 1000;
+        let deletedCount = 0;
+        
+        const snapshot = getBudgetsSnapshot();
+        for (const month in snapshot) {
+           const monthData = snapshot[month];
+           for (const collection of ["income", "fixed", "semFixed", "extra"]) {
+              if (monthData[collection]) {
+                 monthData[collection] = monthData[collection].filter(item => {
+                    const parts = item.id.split('-');
+                    let isRecent = false;
+                    for (const p of parts) {
+                       const ts = parseInt(p);
+                       if (ts > 1000000000000 && (now - ts) < twoHours) {
+                          isRecent = true;
+                       }
+                    }
+                    if (isRecent) deletedCount++;
+                    return !isRecent;
+                 });
+              }
+           }
+        }
+        setBudgets(snapshot);
+
         
         const response = await fetch('./itau_extrato_052026.txt');
         const text = await response.text();
@@ -55,6 +82,13 @@
 
         for(let i=startIndex; i<lines.length; i++) {
            let line = lines[i];
+           
+           // If we hit "saldo (R$)", the PDF page broke and the queue is likely corrupted.
+           if (line.toLowerCase().includes("saldo (r$)")) {
+              pendingItems = []; // clear the queue to prevent misalignment!
+              continue;
+           }
+           
            const dateMatch = line.match(dateDescRegex);
            if (dateMatch) {
               pendingItems.push({ desc: dateMatch[2].trim(), date: dateMatch[1] });
@@ -68,6 +102,7 @@
         }
 
         let addedCount = 0;
+        // Import into the current month state
         for (const item of parsedItems) {
           const upperDesc = item.desc.toUpperCase();
           if (upperDesc.includes("DEV") || upperDesc.includes("SALDO DO DIA") || upperDesc.includes("COFRINHOS")) {
@@ -87,8 +122,8 @@
         }
 
         await saveBudgets(getBudgetsSnapshot());
-        btn.textContent = `Done! Added ${addedCount} items. Reloading...`;
-        setTimeout(() => location.reload(), 1500);
+        btn.textContent = `Fixed! Deleted ${deletedCount} wrong items. Added ${addedCount} items. Reloading...`;
+        setTimeout(() => location.reload(), 2000);
       } catch (err) {
         console.error(err);
         alert("Error importing: " + err.message);
