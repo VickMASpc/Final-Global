@@ -27,13 +27,13 @@
     Import Extrato
   </button>
   <script type="module">
-    import { addRow, updateRow, getBudgetsSnapshot, setBudgets } from "./js/state.js";
+    import { addRow, updateRow, getBudgetsSnapshot, setBudgets, setCurrentMonth, getCurrentMonth } from "./js/state.js";
     import { saveBudgets } from "./js/storage.js";
 
     document.getElementById('runImportBtn').addEventListener('click', async () => {
       try {
         const btn = document.getElementById('runImportBtn');
-        btn.textContent = "Cleaning up & Importing...";
+        btn.textContent = "Cleaning up & Importing month by month...";
         
         const now = Date.now();
         const twoHours = 2 * 60 * 60 * 1000;
@@ -83,9 +83,8 @@
         for(let i=startIndex; i<lines.length; i++) {
            let line = lines[i];
            
-           // If we hit "saldo (R$)", the PDF page broke and the queue is likely corrupted.
            if (line.toLowerCase().includes("saldo (r$)")) {
-              pendingItems = []; // clear the queue to prevent misalignment!
+              pendingItems = []; 
               continue;
            }
            
@@ -101,13 +100,18 @@
            }
         }
 
+        const originalMonth = getCurrentMonth();
         let addedCount = 0;
-        // Import into the current month state
+        
         for (const item of parsedItems) {
           const upperDesc = item.desc.toUpperCase();
           if (upperDesc.includes("DEV") || upperDesc.includes("SALDO DO DIA") || upperDesc.includes("COFRINHOS")) {
              continue;
           }
+          
+          const [dd, mm, yyyy] = item.date.split('/');
+          const monthKey = `${yyyy}-${mm}`;
+          setCurrentMonth(monthKey);
           
           let isNegative = item.amountStr.startsWith('-');
           let numStr = item.amountStr.replace('-', '').replace(/\./g, '').replace(',', '.');
@@ -120,6 +124,8 @@
           updateRow(collection, row.id, "amount", String(amount));
           addedCount++;
         }
+        
+        setCurrentMonth(originalMonth);
 
         await saveBudgets(getBudgetsSnapshot());
         btn.textContent = `Fixed! Deleted ${deletedCount} wrong items. Added ${addedCount} items. Reloading...`;
